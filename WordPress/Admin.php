@@ -19,7 +19,7 @@ class Admin {
         foreach( $post_types as $ptype ) {
             // Make sure we only add metabox for CPTs and the Page screen
             if ( !in_array( $ptype, $other_post_types ) ) {
-                add_meta_box( 'cpt-selector', __('Page Attributes', Plugin::TEXT_DOMAIN), array( $this, 'create_cpt_template_metabox' ), $ptype, 'side', 'core' );
+                add_meta_box( 'cpt-selector', __('Page Attributes', Admin::TEXT_DOMAIN), array( $this, 'create_cpt_template_metabox' ), $ptype, 'side', 'core' );
             }
         }
     }
@@ -44,6 +44,8 @@ class Admin {
         $post_type_object = get_post_type_object( $post->post_type );
         $custom_post_types = array_slice( get_post_types(), 5 );
 
+        wp_nonce_field( basename(__FILE__), 'dp-cptt-nonce' );
+
         // Parent Dropdown
         if ( $post_type_object->hierarchical ) {
             $dropdown_args = array(
@@ -60,15 +62,15 @@ class Admin {
             $pages = wp_dropdown_pages( $dropdown_args );
 
             if ( $pages ) { 
-                echo '<p><strong>' . __('Parent', Plugin::TEXT_DOMAIN) . '</strong></p>';
-                echo '<label class="screen-reader-text" for="parent_id">' .  __('Parent', Plugin::TEXT_DOMAIN) . '</label>';
+                echo '<p><strong>' . __('Parent', Admin::TEXT_DOMAIN) . '</strong></p>';
+                echo '<label class="screen-reader-text" for="parent_id">' .  __('Parent', Admin::TEXT_DOMAIN) . '</label>';
                 echo $pages;
             }
         }
 
         // Template Selector
-        echo '<p><strong>' . __('Template', Plugin::TEXT_DOMAIN) . '</strong></p>';
-        echo '<select id="cpt-selector" name="_wp_page_template"><option value="default">' . __('Default Template', Plugin::TEXT_DOMAIN) . '</option>';
+        echo '<p><strong>' . __('Template', Admin::TEXT_DOMAIN) . '</strong></p>';
+        echo '<select id="cpt-selector" name="_wp_page_template"><option value="default">' . __('Default Template', Admin::TEXT_DOMAIN) . '</option>';
         
         // Loop through the different page templates
         foreach ( $templates as $template_filename => $template_name ) {
@@ -92,13 +94,26 @@ class Admin {
         echo '</select>';
 
         // Page order
-        echo '<p><strong>' . __('Order', Plugin::TEXT_DOMAIN) . '</strong></p>';
-        echo '<p><label class="screen-reader-text" for="menu_order">' . __('Order', Plugin::TEXT_DOMAIN) . '</label><input name="menu_order" type="text" size="4" id="menu_order" value="' . esc_attr($post->menu_order) . '"/></p>';
+        echo '<p><strong>' . __('Order', Admin::TEXT_DOMAIN) . '</strong></p>';
+        echo '<p><label class="screen-reader-text" for="menu_order">' . __('Order', Admin::TEXT_DOMAIN) . '</label><input name="menu_order" type="text" size="4" id="menu_order" value="' . esc_attr($post->menu_order) . '"/></p>';
     }
 
     public function save_cpt_template_metabox( $post_id ) {
-        if ( isset( $_REQUEST['_wp_page_template'] ) ) {
-            update_post_meta( $post_id, '_wp_page_template', $_REQUEST['_wp_page_template'] );
+        if ( !isset( $_POST['dp-cptt-nonce'] ) || !wp_verify_nonce( $_POST['dp-cptt-nonce'], basename(__FILE__) )) {
+            return $post_id;
+        }
+
+        if ( !current_user_can('edit_page', $post_id) || !current_user_can('edit_post', $post_id) ) {
+            return $post_id;
+        }
+
+        if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) {
+            return $post_id;
+        }
+
+        if ( isset( $_POST['_wp_page_template'] ) ) {
+            $template = (string) $_POST['_wp_page_template'];
+            update_post_meta( $post_id, '_wp_page_template', $template );
         }
     }
 
