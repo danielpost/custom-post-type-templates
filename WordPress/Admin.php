@@ -9,7 +9,6 @@ class Admin {
         add_action( 'add_meta_boxes', array( $this, 'add_cpt_template_metabox' ) );
         add_action( 'admin_menu' , array( $this, 'remove_cpt_template_metabox' ) );
         add_action( 'save_post', array( $this, 'save_cpt_template_metabox' ) );
-        add_filter( 'single_template', array( $this, 'custom_single_template' ) );
     }
 
     // Add our own custom Page Attributes metabox
@@ -101,17 +100,6 @@ class Admin {
         if ( isset( $_REQUEST['_wp_page_template'] ) ) {
             update_post_meta( $post_id, '_wp_page_template', $_REQUEST['_wp_page_template'] );
         }
-    }
-
-    public function custom_single_template( $template ) {
-        global $post;
-
-        $post_meta = ( $post ) ? get_post_meta( $post->ID ) : null;
-        if ( isset($post_meta['_wp_page_template'][0]) && ( $post_meta['_wp_page_template'][0] != 'default' ) ) {
-            $template = get_stylesheet_directory() . '/' . $post_meta['_wp_page_template'][0];
-        }
-
-        return $template;
     }
 
 }
